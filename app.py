@@ -34,8 +34,19 @@ def apply_custom_styles():
             border-left: 5px solid #FFD700 !important; /* Borde amarillo/oro para destacar */
             color: white !important; /* Asegurar que el texto del st.info sea blanco */
         }
-        [data-testid="stSidebar"] [data-testid="stNotification"] p {
+        [data-testid="stSidebar"] [data-testid="stNotification"] p,
+        [data-testid="stSidebar"] [data-testid="stNotification"] li {
             color: white !important;
+        }
+
+        /* Botón de Upload en negro */
+        [data-testid="stFileUploader"] section button {
+            background-color: #000000 !important;
+            color: #ffffff !important;
+            border: 1px solid #ffffff !important;
+        }
+        [data-testid="stFileUploader"] section button:hover {
+            background-color: #333333 !important;
         }
         
         /* Fondo blanco exclusivo para el recuadro del logo */
@@ -48,8 +59,8 @@ def apply_custom_styles():
         
         /* Forzar texto blanco en Sidebar (títulos, etiquetas, párrafos) */
         [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3, 
-        [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label,
-        [data-testid="stSidebar"] [data-testid="stNotificationContent"] { /* Target the content div directly */
+        [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label, [data-testid="stSidebar"] li,
+        [data-testid="stSidebar"] [data-testid="stNotificationContent"] {
             color: white !important;
         }
         
@@ -236,8 +247,8 @@ if uploaded_file is not None:
                         else:
                             fig, ax = plt.subplots()
                             
-                            # Get colors from viridis palette
-                            colors = sns.color_palette('viridis', n_colors=len(top_programs))
+                            # Colores pasteles, azules y grises (sin verdes ni fucsias)
+                            colors = ['#2E5A88', '#4A7AB5', '#8DA9C4', '#A5B5C1', '#D1D9E0']
 
                             # Function to determine text color based on background color luminance
                             def get_text_color_for_slice(rgb_color):
