@@ -16,6 +16,46 @@ st.set_page_config(
 sns.set_theme(style="whitegrid")
 plt.rcParams['figure.figsize'] = (10, 6)
 
+# --- ESTILOS PERSONALIZADOS (CSS) ---
+def apply_custom_styles():
+    st.markdown("""
+        <style>
+        /* Fondo y tipografía principal */
+        .main { background-color: #f8f9fa; }
+        
+        /* Estilo para el Sidebar */
+        [data-testid="stSidebar"] {
+            background-color: #003870;
+            color: white;
+        }
+        [data-testid="stSidebar"] .stMarkdown p { color: white; }
+        
+        /* Tarjetas de métricas */
+        [data-testid="stMetricValue"] {
+            color: #003870;
+            font-weight: bold;
+        }
+        .stMetric {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        /* Botones de descarga */
+        .stDownloadButton button {
+            width: 100%;
+            border-radius: 5px;
+            border: 1px solid #003870;
+            color: #003870;
+        }
+        .stDownloadButton button:hover {
+            background-color: #003870;
+            color: white;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
 def fix_mojibake(text):
     """
     Repara errores de codificación donde caracteres UTF-8 se interpretan como Latin-1.
@@ -101,13 +141,24 @@ def clean_data(df):
 
 # --- INTERFAZ DE USUARIO ---
 
-st.title("📚 Sistema de Preparación y Analítica - CRAI USTA")
-st.markdown("""
-Esta herramienta automatiza la limpieza de reportes de préstamos y genera indicadores 
-clave para la sede Villavicencio.
-""")
+apply_custom_styles()
 
-uploaded_file = st.file_uploader("Cargue el reporte del sistema de préstamos (.csv o .xlsx)", type=["csv", "xlsx"])
+# Barra lateral (Sidebar) para configuración y carga
+with st.sidebar:
+    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Escudo_de_la_Universidad_Santo_Tom%C3%A1s.py.svg/1200px-Escudo_de_la_Universidad_Santo_Tom%C3%A1s.py.svg.png", width=100)
+    st.title("Configuración")
+    st.markdown("---")
+    uploaded_file = st.file_uploader("📂 Cargar reporte del sistema", type=["csv", "xlsx"])
+    st.markdown("---")
+    st.info("""
+        **Instrucciones:**
+        1. Suba el archivo CSV/Excel.
+        2. El sistema limpiará tildes y formatos.
+        3. Revise los gráficos generados.
+        4. Descargue el archivo corregido.
+    """)
+
+st.title("📚 Dashboard de Analítica - CRAI USTA Villavicencio")
 
 if uploaded_file is not None:
     with st.spinner('Procesando y desinfectando datos...'):
@@ -118,7 +169,6 @@ if uploaded_file is not None:
             st.success("✅ Datos procesados: Se han corregido codificaciones y formatos de texto.")
 
             # --- SECCIÓN DE KPIs ---
-            st.subheader("📊 Indicadores Clave (KPIs)")
             kpi1, kpi2, kpi3 = st.columns(3)
             
             total_prestamos = len(df)
@@ -131,54 +181,51 @@ if uploaded_file is not None:
             kpi3.metric("Títulos/Temas Distintos", libros_unid)
 
             # --- SECCIÓN DE GRÁFICOS ---
-            col_left, col_right = st.columns(2)
+            st.markdown("---")
+            tab1, tab2 = st.tabs(["📈 Análisis de Demanda", "📅 Tendencias Temporales"])
 
-            with col_left:
-                if 'Tematica' in cols:
-                    st.subheader("Top 10 Temáticas más Solicitadas")
-                    top_themes = df[cols['Tematica']].value_counts().head(10)
-                    fig, ax = plt.subplots()
-                    sns.barplot(x=top_themes.values, y=top_themes.index, palette='Blues_r', ax=ax)
-                    ax.set_xlabel("Cantidad de Préstamos")
+            with tab1:
+                col_left, col_right = st.columns(2)
+                with col_left:
+                    if 'Tematica' in cols:
+                        st.subheader("Top 10 Temáticas")
+                        top_themes = df[cols['Tematica']].value_counts().head(10)
+                        fig, ax = plt.subplots()
+                        sns.barplot(x=top_themes.values, y=top_themes.index, palette='Blues_r', ax=ax)
+                        st.pyplot(fig)
+
+                with col_right:
+                    if 'Carrera' in cols:
+                        st.subheader("Demanda por Programa")
+                        top_programs = df[cols['Carrera']].value_counts().head(5)
+                        fig, ax = plt.subplots()
+                        plt.pie(top_programs, labels=top_programs.index, autopct='%1.1f%%', 
+                                colors=sns.color_palette('viridis'), startangle=140)
+                        st.pyplot(fig)
+
+            with tab2:
+                if 'Fecha' in cols and not df[cols['Fecha']].isnull().all():
+                    st.subheader("Densidad de Préstamos por Día")
+                    df['Dia_Semana'] = df[cols['Fecha']].dt.day_name()
+                    orden_dias = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+                    densidad = df['Dia_Semana'].value_counts().reindex(orden_dias).fillna(0)
+                    
+                    fig, ax = plt.subplots(figsize=(12, 4))
+                    sns.lineplot(x=densidad.index, y=densidad.values, marker='o', color='#003870', linewidth=2.5)
+                    plt.fill_between(densidad.index, densidad.values, alpha=0.2, color='#003870')
                     st.pyplot(fig)
-
-            with col_right:
-                if 'Carrera' in cols:
-                    st.subheader("Demanda por Programa Académico")
-                    top_programs = df[cols['Carrera']].value_counts().head(5)
-                    fig, ax = plt.subplots()
-                    # Gráfico de dona para variar la visualización
-                    plt.pie(top_programs, labels=top_programs.index, autopct='%1.1f%%', 
-                            colors=sns.color_palette('viridis'), startangle=140)
-                    st.pyplot(fig)
-
-            # --- ANÁLISIS TEMPORAL ---
-            if 'Fecha' in cols and not df[cols['Fecha']].isnull().all():
-                st.subheader("📅 Análisis de Densidad Temporal (Préstamos por Día)")
-                df['Dia_Semana'] = df[cols['Fecha']].dt.day_name()
-                # Ordenar días correctamente
-                orden_dias = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-                densidad = df['Dia_Semana'].value_counts().reindex(orden_dias).fillna(0)
-                
-                fig, ax = plt.subplots(figsize=(12, 4))
-                sns.lineplot(x=densidad.index, y=densidad.values, marker='o', color='#1f77b4', linewidth=2.5)
-                plt.fill_between(densidad.index, densidad.values, alpha=0.2)
-                st.pyplot(fig)
 
             # --- MÓDULO DE DESCARGA ---
-            st.divider()
-            st.subheader("💾 Exportar Datos Limpios")
-            
-            # Preparar buffer para descarga
-            # Opción 1: Excel
-            output_excel = io.BytesIO()
-            with pd.ExcelWriter(output_excel, engine='xlsxwriter') as writer:
-                df.to_excel(writer, index=False, sheet_name='Datos_CRAI_Limpios')
-            
-            # Opción 2: CSV con codificación específica para Excel en Windows (UTF-8-SIG)
-            csv_data = df.to_csv(index=False, encoding='utf-8-sig')
+            with st.expander("💾 Exportar y Previsualizar"):
+                st.dataframe(df.head(10), use_container_width=True)
+                
+                output_excel = io.BytesIO()
+                with pd.ExcelWriter(output_excel, engine='xlsxwriter') as writer:
+                    df.to_excel(writer, index=False, sheet_name='Datos_CRAI_Limpios')
+                
+                csv_data = df.to_csv(index=False, encoding='utf-8-sig')
 
-            col_dl1, col_dl2 = st.columns(2)
+                col_dl1, col_dl2 = st.columns(2)
             
             with col_dl1:
                 st.download_button(
@@ -195,11 +242,7 @@ if uploaded_file is not None:
                     file_name="CRAI_Reporte_Limpio.csv",
                     mime="text/csv"
                 )
-
-            # Mostrar previsualización
-            with st.expander("Ver previsualización de datos limpios"):
-                st.dataframe(df.head(20))
         else:
             st.error("No se pudo procesar el archivo. Verifique el formato.")
 else:
-    st.info("👋 Por favor, cargue un archivo para comenzar el análisis.")
+    st.info("👋 Bienvenido. Por favor, cargue el archivo desde el panel de la izquierda para comenzar.")
