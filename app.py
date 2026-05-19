@@ -206,17 +206,17 @@ def clean_data(df):
 
     # Aplicar transformaciones si las columnas existen
     if 'nombre' in final_cols:
-        df[final_cols['nombre']] = df[final_cols['nombre']].str.title()
+        df[final_cols['nombre']] = df[final_cols['nombre']].astype(str).str.title()
     
     if 'carrera' in final_cols:
         # Aplicar el mapeo de homogeneización primero
         # Convertir a minúsculas antes de aplicar el mapeo para que coincida con las claves del mapa
         df[final_cols['carrera']] = df[final_cols['carrera']].astype(str).str.lower().replace(carrera_homogenization_map, regex=False)
         # Luego estandarizar a mayúsculas
-        df[final_cols['carrera']] = df[final_cols['carrera']].str.upper()
+        df[final_cols['carrera']] = df[final_cols['carrera']].astype(str).str.upper()
         
     if 'tematica' in final_cols:
-        df[final_cols['tematica']] = df[final_cols['tematica']].str.capitalize()
+        df[final_cols['tematica']] = df[final_cols['tematica']].astype(str).str.capitalize()
 
     # Manejo de fechas
     if 'fecha' in final_cols:
