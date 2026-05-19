@@ -20,34 +20,47 @@ plt.rcParams['figure.figsize'] = (10, 6)
 def apply_custom_styles():
     st.markdown("""
         <style>
-        /* Fondo y tipografía principal */
-        .main { background-color: #f8f9fa; }
+        /* Fondo general */
+        .stApp { background-color: #ffffff; }
         
         /* Estilo para el Sidebar */
         [data-testid="stSidebar"] {
-            background-color: #003870;
-            color: white;
+            background-color: #003870 !important;
         }
-        [data-testid="stSidebar"] .stMarkdown p { color: white; }
         
-        /* Tarjetas de métricas */
-        [data-testid="stMetricValue"] {
-            color: #003870;
-            font-weight: bold;
+        /* Forzar texto blanco en Sidebar (títulos, etiquetas, párrafos) */
+        [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3, 
+        [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label {
+            color: white !important;
         }
+        
+        /* Títulos en el área principal - Azul USTA */
+        h1, h2, h3 {
+            color: #003870 !important;
+        }
+
+        /* Tarjetas de métricas con mejor contraste */
         .stMetric {
-            background-color: white;
+            background-color: #f1f3f5;
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-left: 5px solid #003870;
+        }
+        [data-testid="stMetricLabel"] {
+            color: #495057 !important; /* Gris oscuro para la etiqueta */
+        }
+        [data-testid="stMetricValue"] {
+            color: #003870 !important; /* Azul para el valor */
         }
         
         /* Botones de descarga */
         .stDownloadButton button {
             width: 100%;
             border-radius: 5px;
-            border: 1px solid #003870;
-            color: #003870;
+            border: 2px solid #003870 !important;
+            color: #003870 !important;
+            font-weight: bold;
         }
         .stDownloadButton button:hover {
             background-color: #003870;
@@ -145,7 +158,7 @@ apply_custom_styles()
 
 # Barra lateral (Sidebar) para configuración y carga
 with st.sidebar:
-    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Escudo_de_la_Universidad_Santo_Tom%C3%A1s.py.svg/1200px-Escudo_de_la_Universidad_Santo_Tom%C3%A1s.py.svg.png", width=100)
+    st.image("logo usta.png", width=150)
     st.title("Configuración")
     st.markdown("---")
     uploaded_file = st.file_uploader("📂 Cargar reporte del sistema", type=["csv", "xlsx"])
