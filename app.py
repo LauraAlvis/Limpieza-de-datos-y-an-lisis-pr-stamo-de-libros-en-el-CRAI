@@ -28,9 +28,20 @@ def apply_custom_styles():
             background-color: #003870 !important;
         }
         
+        /* Fondo blanco exclusivo para el recuadro del logo */
+        [data-testid="stSidebar"] [data-testid="stImage"] {
+            background-color: white !important;
+            padding: 15px !important;
+            border-radius: 10px !important;
+            margin-bottom: 10px !important;
+            display: flex;
+            justify-content: center;
+        }
+        
         /* Forzar texto blanco en Sidebar (títulos, etiquetas, párrafos) */
         [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3, 
-        [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label {
+        [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label,
+        [data-testid="stSidebar"] [data-testid="stNotificationContent"] p {
             color: white !important;
         }
         
@@ -158,7 +169,7 @@ apply_custom_styles()
 
 # Barra lateral (Sidebar) para configuración y carga
 with st.sidebar:
-    st.image("logo usta.png", width=150)
+    st.image("logo usta.png", width=180)
     st.title("Configuración")
     st.markdown("---")
     uploaded_file = st.file_uploader("📂 Cargar reporte del sistema", type=["csv", "xlsx"])
