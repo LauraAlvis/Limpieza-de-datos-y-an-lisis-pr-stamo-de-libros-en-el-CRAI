@@ -5,6 +5,7 @@ import seaborn as sns
 import io
 import unicodedata
 import matplotlib.colors as mcolors
+import re # Necesario para la limpieza de nombres de columnas
 
 # Configuración de la página
 st.set_page_config(
@@ -138,11 +139,11 @@ def load_data(uploaded_file):
         return None
     else:
         return pd.read_excel(uploaded_file)
+    
+    # --- PASO 0: Estandarizar nombres de columnas ---
+    # Aplicar la función de estandarización a todos los nombres de columna
+    df.columns = [standardize_column_name(col) for col in df.columns]
 
-def clean_data(df):
-    """
-    Pipeline de limpieza automatizada.
-    """
     # 1. Reparar jeroglíficos (Mojibake) persistentes
     # 2. Eliminar espacios en blanco en todas las columnas de texto
     # 3. Normalizar caracteres (asegurar que tildes sean un solo caracter Unicode)
@@ -153,33 +154,56 @@ def clean_data(df):
     
     # Identificar columnas por nombres probables (ajustar según el reporte real)
     # Mapeo de nombres comunes en sistemas de bibliotecas
-    col_mapping = {
-        'Nombre': ['nombre', 'usuario', 'estudiante', 'lector'],
-        'Carrera': ['carrera', 'programa', 'facultad', 'programa académico'],
-        'Tematica': ['temática', 'tema', 'área', 'título', 'materia'],
-        'Fecha': ['fecha', 'fecha préstamo', 'fec_prestamo']
+    # Los aliases deben estar en el formato estandarizado (minúsculas, sin tildes, sin espacios)
+    col_mapping = { # Claves son los nombres internos estandarizados que usaremos
+        'nombre': ['nombre', 'usuario', 'estudiante', 'lector', 'cedula', 'idusuario'],
+        'carrera': ['carrera', 'programa', 'facultad', 'programaacademico'],
+        'tematica': ['tematica', 'tema', 'area', 'titulo', 'materia', 'titulodelibro'],
+        'fecha': ['fecha', 'fechaprestamo', 'fecprestamo', 'fechadevolucion']
     }
     
     final_cols = {}
-    for standard_name, aliases in col_mapping.items():
-        for col in df.columns:
-            if col.lower() in aliases:
-                final_cols[standard_name] = col
+    # Iterar sobre los nombres de columna estandarizados del DataFrame
+    for standard_internal_name, aliases in col_mapping.items():
+        for col_df in df.columns: # Iterar sobre las columnas ya estandarizadas del DataFrame
+            if col_df in aliases: # Verificar si la columna estandarizada del DF coincide con algún alias
+                final_cols[standard_internal_name] = col_df
                 break
 
+    # --- Homogeneización de datos de 'carrera' ---
+    # Este mapeo debe aplicarse ANTES de convertir a mayúsculas para evitar problemas con tildes
+    carrera_homogenization_map = {
+        'ing industrial': 'INGENIERÍA INDUSTRIAL',
+        'ingenieria industrial': 'INGENIERÍA INDUSTRIAL',
+        'derecho': 'DERECHO',
+        'administracion de empresas': 'ADMINISTRACIÓN DE EMPRESAS',
+        'contaduria publica': 'CONTADURÍA PÚBLICA',
+        'psicologia': 'PSICOLOGÍA',
+        'arquitectura': 'ARQUITECTURA',
+        'medicina veterinaria': 'MEDICINA VETERINARIA',
+        'comunicacion social': 'COMUNICACIÓN SOCIAL',
+        'licenciatura en educacion fisica': 'LIC. EDUCACIÓN FÍSICA',
+        'licenciatura en educacion infantil': 'LIC. EDUCACIÓN INFANTIL',
+        # Añadir más mapeos según sea necesario
+    }
+
     # Aplicar transformaciones si las columnas existen
-    if 'Nombre' in final_cols:
-        df[final_cols['Nombre']] = df[final_cols['Nombre']].str.title()
+    if 'nombre' in final_cols:
+        df[final_cols['nombre']] = df[final_cols['nombre']].str.title()
     
-    if 'Carrera' in final_cols:
-        df[final_cols['Carrera']] = df[final_cols['Carrera']].str.upper()
+    if 'carrera' in final_cols:
+        # Aplicar el mapeo de homogeneización primero
+        # Convertir a minúsculas antes de aplicar el mapeo para que coincida con las claves del mapa
+        df[final_cols['carrera']] = df[final_cols['carrera']].astype(str).str.lower().replace(carrera_homogenization_map, regex=False)
+        # Luego estandarizar a mayúsculas
+        df[final_cols['carrera']] = df[final_cols['carrera']].str.upper()
         
-    if 'Tematica' in final_cols:
-        df[final_cols['Tematica']] = df[final_cols['Tematica']].str.capitalize()
+    if 'tematica' in final_cols:
+        df[final_cols['tematica']] = df[final_cols['tematica']].str.capitalize()
 
     # Manejo de fechas
-    if 'Fecha' in final_cols:
-        df[final_cols['Fecha']] = pd.to_datetime(df[final_cols['Fecha']], errors='coerce')
+    if 'fecha' in final_cols:
+        df[final_cols['fecha']] = pd.to_datetime(df[final_cols['fecha']], errors='coerce')
     
     return df, final_cols
 
@@ -217,8 +241,8 @@ if uploaded_file is not None:
             
             total_prestamos = len(df)
             # Intentar contar usuarios únicos si existe la columna
-            usuarios_unid = df[cols['Nombre']].nunique() if 'Nombre' in cols else "N/A"
-            libros_unid = df[cols['Tematica']].nunique() if 'Tematica' in cols else "N/A"
+            usuarios_unid = df[cols['nombre']].nunique() if 'nombre' in cols else "N/A"
+            libros_unid = df[cols['tematica']].nunique() if 'tematica' in cols else "N/A"
             
             kpi1.metric("Total Préstamos", total_prestamos)
             kpi2.metric("Usuarios Únicos", usuarios_unid)
@@ -231,17 +255,17 @@ if uploaded_file is not None:
             with tab1:
                 col_left, col_right = st.columns(2)
                 with col_left:
-                    if 'Tematica' in cols:
+                    if 'tematica' in cols:
                         st.subheader("Top 10 Temáticas")
-                        top_themes = df[cols['Tematica']].value_counts().head(10)
+                        top_themes = df[cols['tematica']].value_counts().head(10)
                         fig, ax = plt.subplots()
                         sns.barplot(x=top_themes.values, y=top_themes.index, palette='Blues_r', ax=ax)
                         st.pyplot(fig)
 
                 with col_right:
-                    if 'Carrera' in cols:
+                    if 'carrera' in cols:
                         st.subheader("Demanda por Programa")
-                        top_programs = df[cols['Carrera']].value_counts().head(5)
+                        top_programs = df[cols['carrera']].value_counts().head(5)
                         
                         if top_programs.empty:
                             st.warning("No hay datos de programas académicos para mostrar.")
@@ -249,7 +273,7 @@ if uploaded_file is not None:
                             fig, ax = plt.subplots()
                             
                             # Colores pasteles, azules y grises (sin verdes ni fucsias)
-                            colors = ['#2E5A88', '#4A7AB5', '#8DA9C4', '#A5B5C1', '#D1D9E0']
+                            colors = ['#2E5A88', '#4A7AB5', '#8DA9C4', '#A5B5C1', '#D1D9E0'] # Paleta de azules y grises
 
                             # Function to determine text color based on background color luminance
                             def get_text_color_for_slice(color_hex):
@@ -275,9 +299,9 @@ if uploaded_file is not None:
                             st.pyplot(fig)
 
             with tab2:
-                if 'Fecha' in cols and not df[cols['Fecha']].isnull().all():
+                if 'fecha' in cols and not df[cols['fecha']].isnull().all():
                     st.subheader("Densidad de Préstamos por Día")
-                    df['Dia_Semana'] = df[cols['Fecha']].dt.day_name()
+                    df['Dia_Semana'] = df[cols['fecha']].dt.day_name()
                     orden_dias = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
                     densidad = df['Dia_Semana'].value_counts().reindex(orden_dias).fillna(0)
                     
