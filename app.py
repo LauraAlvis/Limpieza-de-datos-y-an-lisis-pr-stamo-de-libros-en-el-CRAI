@@ -16,6 +16,24 @@ st.set_page_config(
 sns.set_theme(style="whitegrid")
 plt.rcParams['figure.figsize'] = (10, 6)
 
+def fix_mojibake(text):
+    """
+    Repara errores de codificación donde caracteres UTF-8 se interpretan como Latin-1.
+    Ejemplo: 'ConstituciÃ³n' -> 'Constitución'
+    """
+    if not isinstance(text, str):
+        return text
+    try:
+        # Si el texto contiene patrones típicos de UTF-8 mal decodificado (como Ã seguido de algo)
+        # Intentamos re-codificar a latin-1 para obtener los bytes originales y decodificar como utf-8
+        if 'Ã' in text or 'Â' in text or '©' in text:
+            # Intentamos la reparación
+            return text.encode('latin-1').decode('utf-8')
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        # Si falla, devolvemos el texto original para no perder información
+        return text
+    return text
+
 def load_data(uploaded_file):
     """
     Carga de archivos con lógica de detección de codificación robusta.
@@ -41,9 +59,11 @@ def clean_data(df):
     """
     Pipeline de limpieza automatizada.
     """
-    # 1. Eliminar espacios en blanco en todas las columnas de texto
-    # 2. Normalizar caracteres (asegurar que tildes sean un solo caracter Unicode)
+    # 1. Reparar jeroglíficos (Mojibake) persistentes
+    # 2. Eliminar espacios en blanco en todas las columnas de texto
+    # 3. Normalizar caracteres (asegurar que tildes sean un solo caracter Unicode)
     for col in df.select_dtypes(include=['object']).columns:
+        df[col] = df[col].apply(fix_mojibake)
         df[col] = df[col].apply(lambda x: unicodedata.normalize('NFC', str(x)) if pd.notnull(x) else x)
     df = df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
     
