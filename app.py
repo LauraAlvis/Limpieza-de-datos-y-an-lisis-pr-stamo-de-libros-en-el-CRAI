@@ -140,13 +140,31 @@ def load_data(uploaded_file):
     else:
         return pd.read_excel(uploaded_file)
     
+def standardize_column_name(col_name):
+    """
+    Estandariza el nombre de una columna: minúsculas, sin tildes, sin espacios ni caracteres especiales.
+    """
+    if not isinstance(col_name, str):
+        return str(col_name)
+    
+    # Convertir a minúsculas
+    col_name = col_name.lower()
+    
+    # Eliminar tildes y normalizar a ASCII
+    col_name = unicodedata.normalize('NFKD', col_name).encode('ascii', 'ignore').decode('utf-8')
+    
+    # Eliminar cualquier caracter que no sea letras o números
+    col_name = re.sub(r'[^a-z0-9]', '', col_name)
+    
+    return col_name
+
+def clean_data(df):
+    """
+    Pipeline de limpieza automatizada.
+    """
     # --- PASO 0: Estandarizar nombres de columnas ---
-    # Aplicar la función de estandarización a todos los nombres de columna
     df.columns = [standardize_column_name(col) for col in df.columns]
 
-    # 1. Reparar jeroglíficos (Mojibake) persistentes
-    # 2. Eliminar espacios en blanco en todas las columnas de texto
-    # 3. Normalizar caracteres (asegurar que tildes sean un solo caracter Unicode)
     for col in df.select_dtypes(include=['object']).columns:
         df[col] = df[col].apply(fix_mojibake)
         df[col] = df[col].apply(lambda x: unicodedata.normalize('NFC', str(x)) if pd.notnull(x) else x)
@@ -156,14 +174,13 @@ def load_data(uploaded_file):
     # Mapeo de nombres comunes en sistemas de bibliotecas
     # Los aliases deben estar en el formato estandarizado (minúsculas, sin tildes, sin espacios)
     col_mapping = { # Claves son los nombres internos estandarizados que usaremos
-        'nombre': ['nombre', 'usuario', 'estudiante', 'lector', 'cedula', 'idusuario'],
+        'nombre': ['nombre', 'usuario', 'estudiante', 'lector', 'cedula', 'idusuario', 'identificacion'],
         'carrera': ['carrera', 'programa', 'facultad', 'programaacademico'],
         'tematica': ['tematica', 'tema', 'area', 'titulo', 'materia', 'titulodelibro'],
-        'fecha': ['fecha', 'fechaprestamo', 'fecprestamo', 'fechadevolucion']
+        'fecha': ['fecha', 'fechaprestamo', 'fecprestamo', 'fechadevolucion', 'fecprest']
     }
     
     final_cols = {}
-    # Iterar sobre los nombres de columna estandarizados del DataFrame
     for standard_internal_name, aliases in col_mapping.items():
         for col_df in df.columns: # Iterar sobre las columnas ya estandarizadas del DataFrame
             if col_df in aliases: # Verificar si la columna estandarizada del DF coincide con algún alias
