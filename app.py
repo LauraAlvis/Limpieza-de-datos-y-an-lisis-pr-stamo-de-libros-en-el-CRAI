@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import io
+import unicodedata
 
 # Configuración de la página
 st.set_page_config(
@@ -22,7 +23,7 @@ def load_data(uploaded_file):
     extension = uploaded_file.name.split('.')[-1]
     
     if extension == 'csv':
-        encodings = ['utf-8', 'latin-1', 'ansi', 'cp1252']
+        encodings = ['utf-8-sig', 'utf-8', 'latin-1', 'cp1252']
         for encoding in encodings:
             try:
                 # Volver al inicio del archivo para cada intento
@@ -41,6 +42,9 @@ def clean_data(df):
     Pipeline de limpieza automatizada.
     """
     # 1. Eliminar espacios en blanco en todas las columnas de texto
+    # 2. Normalizar caracteres (asegurar que tildes sean un solo caracter Unicode)
+    for col in df.select_dtypes(include=['object']).columns:
+        df[col] = df[col].apply(lambda x: unicodedata.normalize('NFC', str(x)) if pd.notnull(x) else x)
     df = df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
     
     # Identificar columnas por nombres probables (ajustar según el reporte real)
@@ -146,18 +150,31 @@ if uploaded_file is not None:
             st.subheader("💾 Exportar Datos Limpios")
             
             # Preparar buffer para descarga
-            output = io.BytesIO()
-            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                df.to_excel(writer, index=False, sheet_name='Datos_Limpios')
+            # Opción 1: Excel
+            output_excel = io.BytesIO()
+            with pd.ExcelWriter(output_excel, engine='xlsxwriter') as writer:
+                df.to_excel(writer, index=False, sheet_name='Datos_CRAI_Limpios')
             
-            processed_data = output.getvalue()
+            # Opción 2: CSV con codificación específica para Excel en Windows (UTF-8-SIG)
+            csv_data = df.to_csv(index=False, encoding='utf-8-sig')
 
-            st.download_button(
-                label="Descargar Base de Datos Limpia (Excel)",
-                data=processed_data,
-                file_name="CRAI_Datos_Limpios.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+            col_dl1, col_dl2 = st.columns(2)
+            
+            with col_dl1:
+                st.download_button(
+                    label="Descargar en Excel (.xlsx)",
+                    data=output_excel.getvalue(),
+                    file_name="CRAI_Reporte_Limpio.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+            
+            with col_dl2:
+                st.download_button(
+                    label="Descargar en CSV (Compatible con Excel)",
+                    data=csv_data,
+                    file_name="CRAI_Reporte_Limpio.csv",
+                    mime="text/csv"
+                )
 
             # Mostrar previsualización
             with st.expander("Ver previsualización de datos limpios"):
