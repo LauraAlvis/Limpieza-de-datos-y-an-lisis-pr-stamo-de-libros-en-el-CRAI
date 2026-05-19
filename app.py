@@ -233,33 +233,32 @@ if uploaded_file is not None:
                         
                         if top_programs.empty:
                             st.warning("No hay datos de programas académicos para mostrar.")
-                            continue
+                        else:
+                            fig, ax = plt.subplots()
+                            
+                            # Get colors from viridis palette
+                            colors = sns.color_palette('viridis', n_colors=len(top_programs))
 
-                        fig, ax = plt.subplots()
-                        
-                        # Get colors from viridis palette
-                        colors = sns.color_palette('viridis', n_colors=len(top_programs))
+                            # Function to determine text color based on background color luminance
+                            def get_text_color_for_slice(rgb_color):
+                                # Calculate luminance (0-1 range)
+                                luminance = (0.299 * rgb_color[0] + 0.587 * rgb_color[1] + 0.114 * rgb_color[2])
+                                return 'white' if luminance < 0.5 else 'black' # Threshold 0.5 for dark/light
 
-                        # Function to determine text color based on background color luminance
-                        def get_text_color_for_slice(rgb_color):
-                            # Calculate luminance (0-1 range)
-                            luminance = (0.299 * rgb_color[0] + 0.587 * rgb_color[1] + 0.114 * rgb_color[2])
-                            return 'white' if luminance < 0.5 else 'black' # Threshold 0.5 for dark/light
+                            # Plot the pie chart
+                            wedges, texts, autotexts = ax.pie(top_programs, 
+                                                              labels=top_programs.index, 
+                                                              autopct='%1.1f%%', 
+                                                              colors=colors, 
+                                                              startangle=140,
+                                                              pctdistance=0.85) # Adjust distance of percentages from center
 
-                        # Plot the pie chart
-                        wedges, texts, autotexts = ax.pie(top_programs, 
-                                                          labels=top_programs.index, 
-                                                          autopct='%1.1f%%', 
-                                                          colors=colors, 
-                                                          startangle=140,
-                                                          pctdistance=0.85) # Adjust distance of percentages from center
-
-                        # Set the color of the percentage labels (autotexts)
-                        for i, autotext in enumerate(autotexts):
-                            autotext.set_color(get_text_color_for_slice(colors[i]))
-                            autotext.set_fontsize(10)
-                            autotext.set_fontweight('bold')
-                        st.pyplot(fig)
+                            # Set the color of the percentage labels (autotexts)
+                            for i, autotext in enumerate(autotexts):
+                                autotext.set_color(get_text_color_for_slice(colors[i]))
+                                autotext.set_fontsize(10)
+                                autotext.set_fontweight('bold')
+                            st.pyplot(fig)
 
             with tab2:
                 if 'Fecha' in cols and not df[cols['Fecha']].isnull().all():
