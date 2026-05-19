@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import io
 import unicodedata
+import matplotlib.colors as mcolors
 
 # Configuración de la página
 st.set_page_config(
@@ -251,7 +252,9 @@ if uploaded_file is not None:
                             colors = ['#2E5A88', '#4A7AB5', '#8DA9C4', '#A5B5C1', '#D1D9E0']
 
                             # Function to determine text color based on background color luminance
-                            def get_text_color_for_slice(rgb_color):
+                            def get_text_color_for_slice(color_hex):
+                                # Convertir hex a RGB (escala 0-1)
+                                rgb_color = mcolors.to_rgb(color_hex)
                                 # Calculate luminance (0-1 range)
                                 luminance = (0.299 * rgb_color[0] + 0.587 * rgb_color[1] + 0.114 * rgb_color[2])
                                 return 'white' if luminance < 0.5 else 'black' # Threshold 0.5 for dark/light
