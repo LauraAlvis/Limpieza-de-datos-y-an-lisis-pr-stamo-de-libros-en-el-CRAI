@@ -177,7 +177,8 @@ def clean_data(df):
         'nombre': ['nombre', 'usuario', 'estudiante', 'lector', 'cedula', 'idusuario', 'identificacion'],
         'carrera': ['carrera', 'programa', 'facultad', 'programaacademico'],
         'tematica': ['tematica', 'tema', 'area', 'titulo', 'materia', 'titulodelibro'],
-        'fecha': ['fecha', 'fechaprestamo', 'fecprestamo', 'fechadevolucion', 'fecprest']
+        'fecha': ['fecha', 'fechaprestamo', 'fecprestamo', 'fechadevolucion', 'fecprest'],
+        'categoria': ['categoria', 'estamento', 'tipousuario', 'vinculacion', 'perfil', 'personaje']
     }
     
     final_cols = {}
@@ -216,7 +217,12 @@ def clean_data(df):
         df[final_cols['carrera']] = df[final_cols['carrera']].astype(str).str.upper()
         
     if 'tematica' in final_cols:
+        # Limpiar puntuación final (como : o /) y estandarizar
         df[final_cols['tematica']] = df[final_cols['tematica']].astype(str).str.capitalize()
+        df[final_cols['tematica']] = df[final_cols['tematica']].str.replace(r'[\s:/]+$', '', regex=True).str.strip()
+
+    if 'categoria' in final_cols:
+        df[final_cols['categoria']] = df[final_cols['categoria']].astype(str).str.upper().str.strip()
 
     # Manejo de fechas
     if 'fecha' in final_cols:
@@ -267,7 +273,7 @@ if uploaded_file is not None:
 
             # --- SECCIÓN DE GRÁFICOS ---
             st.markdown("---")
-            tab1, tab2 = st.tabs(["📈 Análisis de Demanda", "📅 Tendencias Temporales"])
+            tab1, tab2, tab3 = st.tabs(["📈 Análisis de Demanda", "👥 Perfil de Usuario", "📅 Tendencias Temporales"])
 
             with tab1:
                 col_left, col_right = st.columns(2)
@@ -316,6 +322,17 @@ if uploaded_file is not None:
                             st.pyplot(fig)
 
             with tab2:
+                if 'categoria' in cols:
+                    st.subheader("Distribución por Tipo de Usuario (Categoría)")
+                    cat_counts = df[cols['categoria']].value_counts()
+                    fig, ax = plt.subplots()
+                    sns.barplot(x=cat_counts.values, y=cat_counts.index, palette='Blues_r', ax=ax)
+                    ax.set_xlabel("Cantidad de Préstamos")
+                    st.pyplot(fig)
+                else:
+                    st.warning("No se detectó una columna de 'Categoría' o 'Estamento' en el archivo.")
+
+            with tab3:
                 if 'fecha' in cols and not df[cols['fecha']].isnull().all():
                     st.subheader("Densidad de Préstamos por Día")
                     df['Dia_Semana'] = df[cols['fecha']].dt.day_name()
