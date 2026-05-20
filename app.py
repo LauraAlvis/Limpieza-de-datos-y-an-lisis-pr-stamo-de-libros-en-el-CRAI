@@ -233,7 +233,7 @@ with st.sidebar:
     st.image("logo usta.png", width=180)
     st.title("Configuración")
     st.markdown("---")
-    uploaded_file = st.file_uploader("📂 Cargar reporte del sistema", type=["csv", "xlsx"])
+    uploaded_file = st.file_uploader("📂 Cargar reporte del sistema", type=["csv", "xlsx", "ods"])
     st.markdown("---")
     st.info("""
         **Instrucciones:**
